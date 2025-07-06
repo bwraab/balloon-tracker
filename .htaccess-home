@@ -1,0 +1,19 @@
+# Security headers 
+Header always set X-Content-Type-Options nosniff 
+Header always set X-Frame-Options DENY 
+Header always set X-XSS-Protection "1; mode=block"
+
+# Force HTTP (not HTTPS) for local development
+RewriteEngine On
+
+# Handle static files first - don't proxy them
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^(.*)$ - [L]
+
+# Handle directories - don't proxy them
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^(.*)$ - [L]
+
+# Proxy API and app requests to Node.js running from home directory
+# The Node.js app will be running on port 3000 from the home directory
+RewriteRule ^(.*)$ http://localhost:3000/$1 [P,L] 

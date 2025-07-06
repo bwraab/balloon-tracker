@@ -1,0 +1,26 @@
+# Security headers
+Header always set X-Content-Type-Options nosniff
+Header always set X-Frame-Options DENY
+Header always set X-XSS-Protection "1; mode=block"
+
+# Enable rewrite engine
+RewriteEngine On
+
+# Handle static files - serve them directly
+RewriteCond %{REQUEST_URI} ^/balloon-tracker/static/
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^(.*)$ - [L]
+
+# Handle manifest and other static files
+RewriteCond %{REQUEST_URI} ^/balloon-tracker/(manifest\.json|favicon\.ico|logo.*\.png)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^(.*)$ - [L]
+
+# Handle API requests - redirect to Node.js
+RewriteCond %{REQUEST_URI} ^/balloon-tracker/api/
+RewriteRule ^balloon-tracker/(.*)$ http://localhost:3000/$1 [R=302,L]
+
+# Handle all other requests - serve index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^balloon-tracker/(.*)$ /balloon-tracker/index.html [L] 

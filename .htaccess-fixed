@@ -1,0 +1,24 @@
+# Security headers 
+Header always set X-Content-Type-Options nosniff 
+Header always set X-Frame-Options DENY 
+Header always set X-XSS-Protection "1; mode=block"
+
+# Enable rewrite engine
+RewriteEngine On
+
+# Disable MultiViews to prevent .var file issues
+Options -MultiViews
+
+# Handle static files first - don't proxy them
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^(.*)$ - [L]
+
+# Handle directories - don't proxy them
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^(.*)$ - [L]
+
+# Proxy all other requests to Node.js running from home directory
+RewriteRule ^(.*)$ http://localhost:3000/$1 [P,L]
+
+# Fallback - if proxy fails, try to serve index.html
+ErrorDocument 404 /index.html 

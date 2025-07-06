@@ -1,0 +1,15 @@
+{
+  "name": "minimal-test-app",
+  "version": "1.0.0",
+  "description": "Minimal test app for Passenger",
+  "main": "minimal-test-app.js",
+  "scripts": {
+    "start": "node minimal-test-app.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+} 
