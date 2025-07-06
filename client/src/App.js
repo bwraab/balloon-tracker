@@ -128,13 +128,60 @@ function App() {
 
   // Calculate map center based on available data
   const getMapCenter = () => {
+    // Priority 1: Current balloon position
     if (trackingData.balloon.current) {
       return [trackingData.balloon.current.latitude, trackingData.balloon.current.longitude];
     }
+    
+    // Priority 2: Predicted burst point
     if (trackingData.prediction && trackingData.prediction.burstPoint) {
       return [trackingData.prediction.burstPoint.latitude, trackingData.prediction.burstPoint.longitude];
     }
-    return [39.8283, -98.5795]; // Default to center of USA
+    
+    // Priority 3: Predicted landing point
+    if (trackingData.prediction && trackingData.prediction.landingPoint) {
+      return [trackingData.prediction.landingPoint.latitude, trackingData.prediction.landingPoint.longitude];
+    }
+    
+    // Priority 4: Center of prediction path (if available)
+    if (trackingData.prediction && trackingData.prediction.path && trackingData.prediction.path.length > 0) {
+      const midIndex = Math.floor(trackingData.prediction.path.length / 2);
+      const midPoint = trackingData.prediction.path[midIndex];
+      return [midPoint.lat, midPoint.lng];
+    }
+    
+    // Priority 5: Actual burst point
+    if (trackingData.balloon.actualBurstPoint) {
+      return [trackingData.balloon.actualBurstPoint.latitude, trackingData.balloon.actualBurstPoint.longitude];
+    }
+    
+    // Priority 6: Calculated landing point
+    if (trackingData.balloon.calculatedLanding) {
+      return [trackingData.balloon.calculatedLanding.latitude, trackingData.balloon.calculatedLanding.longitude];
+    }
+    
+    // Default: Center of Georgia (Atlanta area)
+    return [33.7490, -84.3880]; // Atlanta, GA
+  };
+
+  const getMapZoom = () => {
+    // If we have a current balloon position, zoom in closer
+    if (trackingData.balloon.current) {
+      return 10;
+    }
+    
+    // If we have prediction data, use medium zoom
+    if (trackingData.prediction && (trackingData.prediction.burstPoint || trackingData.prediction.landingPoint)) {
+      return 9;
+    }
+    
+    // If we have a flight path, zoom to fit the path
+    if (trackingData.prediction && trackingData.prediction.path && trackingData.prediction.path.length > 1) {
+      return 8;
+    }
+    
+    // Default zoom for Georgia
+    return 7;
   };
 
   const formatTime = (timestamp) => {
@@ -183,7 +230,7 @@ function App() {
       {/* Map */}
       <MapContainer 
         center={getMapCenter()} 
-        zoom={8} 
+        zoom={getMapZoom()} 
         style={{ height: '100vh', width: '100%' }}
       >
         <TileLayer
