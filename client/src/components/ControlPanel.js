@@ -14,6 +14,7 @@ import {
   Plus,
   Settings
 } from 'lucide-react';
+import apiConfig from '../config';
 
 const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking }) => {
   const [newChaserCallsign, setNewChaserCallsign] = useState('');
@@ -27,7 +28,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
     formData.append('kmlFile', file);
 
     try {
-      const response = await axios.post('/api/kml/upload', formData, {
+      const response = await axios.post(`${apiConfig.API_BASE_URL}/api/kml/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -59,7 +60,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
     if (!newChaserCallsign.trim()) return;
     
     try {
-      await axios.post('/api/config/chaser-callsigns', { callsign: newChaserCallsign });
+      await axios.post(`${apiConfig.API_BASE_URL}/api/config/chaser-callsigns`, { callsign: newChaserCallsign });
       setNewChaserCallsign('');
       toast.success('Chaser added');
       // Reload config to get updated chaser list
@@ -72,7 +73,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
 
   const handleRemoveChaser = async (callsign) => {
     try {
-      await axios.delete(`/api/config/chaser-callsigns/${callsign}`);
+      await axios.delete(`${apiConfig.API_BASE_URL}/api/config/chaser-callsigns/${callsign}`);
       toast.success('Chaser removed');
       // Reload config to get updated chaser list
       window.location.reload();

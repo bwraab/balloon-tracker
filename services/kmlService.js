@@ -40,18 +40,27 @@ class KMLService {
 
     try {
       const kml = kmlData.kml;
-      if (!kml || !kml.Document) return flightData;
+      if (!kml || !kml.Document) {
+        console.log('No KML Document found');
+        return flightData;
+      }
 
       const document = kml.Document[0];
+      console.log('Processing KML Document');
       
       // Extract Placemarks
       if (document.Placemark) {
-        document.Placemark.forEach(placemark => {
+        console.log(`Found ${document.Placemark.length} placemarks`);
+        
+        document.Placemark.forEach((placemark, index) => {
           const name = placemark.name ? placemark.name[0] : '';
           const description = placemark.description ? placemark.description[0] : '';
           
+          console.log(`Processing placemark ${index + 1}: "${name}"`);
+          
           // Look for burst point
           if (this.isBurstPoint(name, description)) {
+            console.log('Found burst point:', name);
             const coordinates = this.extractCoordinates(placemark);
             if (coordinates.length > 0) {
               flightData.burstPoint = {
@@ -66,6 +75,7 @@ class KMLService {
           
           // Look for landing point
           else if (this.isLandingPoint(name, description)) {
+            console.log('Found landing point:', name);
             const coordinates = this.extractCoordinates(placemark);
             if (coordinates.length > 0) {
               flightData.landingPoint = {
@@ -78,14 +88,29 @@ class KMLService {
             }
           }
           
-          // Extract flight path
+          // Extract flight path - check for LineString first
           else if (placemark.LineString) {
+            console.log('Found LineString for flight path');
             const coordinates = this.extractLineStringCoordinates(placemark.LineString[0]);
+            console.log(`Extracted ${coordinates.length} path points`);
             flightData.path = coordinates;
+          }
+          
+          // Also check for MultiGeometry with LineString
+          else if (placemark.MultiGeometry) {
+            console.log('Found MultiGeometry, checking for LineString');
+            const multiGeometry = placemark.MultiGeometry[0];
+            if (multiGeometry.LineString) {
+              console.log('Found LineString in MultiGeometry');
+              const coordinates = this.extractLineStringCoordinates(multiGeometry.LineString[0]);
+              console.log(`Extracted ${coordinates.length} path points from MultiGeometry`);
+              flightData.path = coordinates;
+            }
           }
           
           // Extract waypoints
           else if (placemark.Point) {
+            console.log('Found Point waypoint:', name);
             const coordinates = this.extractCoordinates(placemark);
             if (coordinates.length > 0) {
               flightData.waypoints.push({
@@ -97,13 +122,64 @@ class KMLService {
               });
             }
           }
+          
+          // If no specific type found, check if it might be a path
+          else if (!name.toLowerCase().includes('burst') && 
+                   !name.toLowerCase().includes('landing') && 
+                   !name.toLowerCase().includes('pop') &&
+                   !name.toLowerCase().includes('touchdown')) {
+            console.log('Checking for alternative path representation');
+            // Some KML files might have the path in a different structure
+            if (placemark.LineString) {
+              console.log('Found alternative LineString');
+              const coordinates = this.extractLineStringCoordinates(placemark.LineString[0]);
+              if (coordinates.length > 0) {
+                console.log(`Extracted ${coordinates.length} path points from alternative source`);
+                flightData.path = coordinates;
+              }
+            }
+          }
         });
       }
+      
+      // If no path found in placemarks, try to find it in other structures
+      if (flightData.path.length === 0) {
+        console.log('No path found in placemarks, checking other structures');
+        this.findPathInOtherStructures(document, flightData);
+      }
+      
+      console.log('Final flight data:', {
+        pathPoints: flightData.path.length,
+        hasBurstPoint: !!flightData.burstPoint,
+        hasLandingPoint: !!flightData.landingPoint,
+        waypoints: flightData.waypoints.length
+      });
+      
     } catch (error) {
       console.error('Error extracting flight data:', error);
     }
 
     return flightData;
+  }
+
+  findPathInOtherStructures(document, flightData) {
+    // Check for paths in other KML structures
+    if (document.Folder) {
+      document.Folder.forEach(folder => {
+        if (folder.Placemark) {
+          folder.Placemark.forEach(placemark => {
+            if (placemark.LineString && flightData.path.length === 0) {
+              console.log('Found LineString in Folder');
+              const coordinates = this.extractLineStringCoordinates(placemark.LineString[0]);
+              if (coordinates.length > 0) {
+                console.log(`Extracted ${coordinates.length} path points from Folder`);
+                flightData.path = coordinates;
+              }
+            }
+          });
+        }
+      });
+    }
   }
 
   isBurstPoint(name, description) {
@@ -140,18 +216,38 @@ class KMLService {
     
     if (lineString.coordinates) {
       const coordString = lineString.coordinates[0];
-      const coordPairs = coordString.trim().split(' ');
+      console.log('Processing LineString coordinates:', coordString.substring(0, 100) + '...');
       
-      coordPairs.forEach(pair => {
+      // Handle different coordinate formats
+      const coordPairs = coordString.trim().split(/\s+/); // Split on whitespace
+      
+      console.log(`Found ${coordPairs.length} coordinate pairs`);
+      
+      coordPairs.forEach((pair, index) => {
         const parts = pair.split(',');
         if (parts.length >= 2) {
-          coordinates.push({
-            lng: parseFloat(parts[0]),
-            lat: parseFloat(parts[1]),
-            alt: parts.length > 2 ? parseFloat(parts[2]) : 0
-          });
+          const lng = parseFloat(parts[0]);
+          const lat = parseFloat(parts[1]);
+          const alt = parts.length > 2 ? parseFloat(parts[2]) : 0;
+          
+          // Validate coordinates
+          if (!isNaN(lng) && !isNaN(lat) && lng >= -180 && lng <= 180 && lat >= -90 && lat <= 90) {
+            coordinates.push({
+              lng: lng,
+              lat: lat,
+              alt: alt
+            });
+          } else {
+            console.log(`Skipping invalid coordinates at index ${index}: ${pair}`);
+          }
+        } else {
+          console.log(`Skipping malformed coordinate pair at index ${index}: ${pair}`);
         }
       });
+      
+      console.log(`Successfully extracted ${coordinates.length} valid coordinates`);
+    } else {
+      console.log('No coordinates found in LineString');
     }
     
     return coordinates;

@@ -14,6 +14,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import ControlPanel from './components/ControlPanel';
+import apiConfig from './config';
 import './App.css';
 
 // Custom icons for different markers
@@ -85,7 +86,7 @@ function App() {
 
   const loadConfig = async () => {
     try {
-      const response = await axios.get('/api/config');
+      const response = await axios.get(`${apiConfig.API_BASE_URL}/api/config`);
       setConfig(response.data);
     } catch (error) {
       console.error('Error loading config:', error);
@@ -95,7 +96,7 @@ function App() {
 
   const loadTrackingData = async () => {
     try {
-      const response = await axios.get('/api/tracking');
+      const response = await axios.get(`${apiConfig.API_BASE_URL}/api/tracking`);
       setTrackingData(response.data);
     } catch (error) {
       console.error('Error loading tracking data:', error);
@@ -105,7 +106,7 @@ function App() {
 
   const updateConfig = async (newConfig) => {
     try {
-      const response = await axios.put('/api/config', newConfig);
+      const response = await axios.put(`${apiConfig.API_BASE_URL}/api/config`, newConfig);
       setConfig(response.data);
       toast.success('Configuration updated');
     } catch (error) {
@@ -116,7 +117,7 @@ function App() {
 
   const resetTracking = async () => {
     try {
-      await axios.post('/api/tracking/reset');
+      await axios.post(`${apiConfig.API_BASE_URL}/api/tracking/reset`);
       toast.success('Tracking data reset');
       loadTrackingData();
     } catch (error) {
