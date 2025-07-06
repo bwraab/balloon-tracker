@@ -58,38 +58,8 @@ class KMLService {
           
           console.log(`Processing placemark ${index + 1}: "${name}"`);
           
-          // Look for burst point
-          if (this.isBurstPoint(name, description)) {
-            console.log('Found burst point:', name);
-            const coordinates = this.extractCoordinates(placemark);
-            if (coordinates.length > 0) {
-              flightData.burstPoint = {
-                latitude: coordinates[0].lat,
-                longitude: coordinates[0].lng,
-                altitude: coordinates[0].alt || 0,
-                name: name,
-                description: description
-              };
-            }
-          }
-          
-          // Look for landing point
-          else if (this.isLandingPoint(name, description)) {
-            console.log('Found landing point:', name);
-            const coordinates = this.extractCoordinates(placemark);
-            if (coordinates.length > 0) {
-              flightData.landingPoint = {
-                latitude: coordinates[0].lat,
-                longitude: coordinates[0].lng,
-                altitude: coordinates[0].alt || 0,
-                name: name,
-                description: description
-              };
-            }
-          }
-          
-          // Extract flight path - check for LineString first
-          else if (placemark.LineString) {
+          // First priority: Extract flight path (LineString)
+          if (placemark.LineString) {
             console.log('Found LineString for flight path');
             const coordinates = this.extractLineStringCoordinates(placemark.LineString[0]);
             console.log(`Extracted ${coordinates.length} path points`);
@@ -108,7 +78,37 @@ class KMLService {
             }
           }
           
-          // Extract waypoints
+          // Second priority: Look for burst point (only if not already found)
+          else if (this.isBurstPoint(name, description) && !flightData.burstPoint) {
+            console.log('Found burst point:', name);
+            const coordinates = this.extractCoordinates(placemark);
+            if (coordinates.length > 0) {
+              flightData.burstPoint = {
+                latitude: coordinates[0].lat,
+                longitude: coordinates[0].lng,
+                altitude: coordinates[0].alt || 0,
+                name: name,
+                description: description
+              };
+            }
+          }
+          
+          // Third priority: Look for landing point (only if not already found)
+          else if (this.isLandingPoint(name, description) && !flightData.landingPoint) {
+            console.log('Found landing point:', name);
+            const coordinates = this.extractCoordinates(placemark);
+            if (coordinates.length > 0) {
+              flightData.landingPoint = {
+                latitude: coordinates[0].lat,
+                longitude: coordinates[0].lng,
+                altitude: coordinates[0].alt || 0,
+                name: name,
+                description: description
+              };
+            }
+          }
+          
+          // Fourth priority: Extract waypoints (Point elements)
           else if (placemark.Point) {
             console.log('Found Point waypoint:', name);
             const coordinates = this.extractCoordinates(placemark);
@@ -184,7 +184,11 @@ class KMLService {
 
   isBurstPoint(name, description) {
     const text = (name + ' ' + description).toLowerCase();
-    return text.includes('burst') || text.includes('pop') || text.includes('explosion');
+    // More specific burst detection - avoid matching "flight path"
+    return (text.includes('burst') || text.includes('pop') || text.includes('explosion')) && 
+           !text.includes('flight') && 
+           !text.includes('path') &&
+           !text.includes('trajectory');
   }
 
   isLandingPoint(name, description) {
