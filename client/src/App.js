@@ -307,7 +307,13 @@ function App() {
             <Popup>
               <div>
                 <h3>Actual Burst Point</h3>
-                <p><strong>Altitude:</strong> {formatAltitude(trackingData.balloon.actualBurstPoint.altitude)}</p>
+                <p><strong>Burst Altitude:</strong> {formatAltitude(trackingData.balloon.actualBurstPoint.altitude)}</p>
+                {trackingData.balloon.actualBurstPoint.peakAltitude && (
+                  <p><strong>Peak Altitude:</strong> {formatAltitude(trackingData.balloon.actualBurstPoint.peakAltitude)}</p>
+                )}
+                {trackingData.balloon.actualBurstPoint.altitudeDrop && (
+                  <p><strong>Altitude Drop:</strong> {formatAltitude(trackingData.balloon.actualBurstPoint.altitudeDrop)}</p>
+                )}
                 <p><strong>Time:</strong> {formatTime(trackingData.balloon.actualBurstPoint.timestamp)}</p>
               </div>
             </Popup>

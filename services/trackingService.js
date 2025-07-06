@@ -22,6 +22,16 @@ class TrackingService {
     this.trackingInterval = null;
     this.burstDetectionThreshold = 5000; // meters altitude for burst detection
     this.maxHistoryLength = 1000; // Maximum number of historical points to keep
+    
+    // Burst detection state
+    this.burstDetectionState = {
+      isMonitoring: false,           // Whether we're actively monitoring for burst
+      minimumAltitudeToStart: 3000,  // Start monitoring after reaching 3000m (~10,000ft)
+      highestAltitudeReached: 0,     // Track the highest altitude seen
+      significantDropThreshold: 1000, // Require 1000m drop to confirm burst
+      consecutiveDescentPoints: 0,   // Count consecutive descending points
+      requiredDescentPoints: 3       // Need 3 consecutive descending points to confirm burst
+    };
   }
 
   startTracking(io) {
@@ -46,6 +56,9 @@ class TrackingService {
         console.log('No balloon callsign configured');
         return;
       }
+
+      // Update burst detection threshold from config
+      this.burstDetectionThreshold = config.burstDetectionAltitude || 5000;
 
       // Get balloon data
       const balloonData = await aprsService.getStationData(config.balloonCallsign);
@@ -97,25 +110,69 @@ class TrackingService {
   checkForBurst(currentData) {
     if (this.trackingData.balloon.burstDetected) return;
 
-    // Check if altitude is available and below threshold
-    if (currentData.altitude && currentData.altitude < this.burstDetectionThreshold) {
-      // Check if we have previous data to confirm descent
-      if (this.trackingData.balloon.history.length > 1) {
+    // Skip if no altitude data
+    if (!currentData.altitude) return;
+
+    const currentAltitude = currentData.altitude;
+    const state = this.burstDetectionState;
+
+    // Phase 1: Wait for balloon to reach minimum altitude before monitoring
+    if (!state.isMonitoring) {
+      if (currentAltitude >= state.minimumAltitudeToStart) {
+        state.isMonitoring = true;
+        state.highestAltitudeReached = currentAltitude;
+        console.log(`Burst detection activated at ${currentAltitude}m altitude`);
+      }
+      return;
+    }
+
+    // Phase 2: Track the highest altitude reached
+    if (currentAltitude > state.highestAltitudeReached) {
+      state.highestAltitudeReached = currentAltitude;
+      state.consecutiveDescentPoints = 0; // Reset descent counter on new high
+      console.log(`New altitude record: ${currentAltitude}m`);
+    }
+
+    // Phase 3: Check for significant altitude drop from peak
+    const altitudeDrop = state.highestAltitudeReached - currentAltitude;
+    
+    if (altitudeDrop >= state.significantDropThreshold) {
+      // Check if we have previous data to confirm descent pattern
+      if (this.trackingData.balloon.history.length >= 2) {
         const previousData = this.trackingData.balloon.history[this.trackingData.balloon.history.length - 2];
         
-        if (previousData.altitude && currentData.altitude < previousData.altitude) {
-          // Confirm burst - altitude is decreasing and below threshold
-          this.trackingData.balloon.burstDetected = true;
-          this.trackingData.balloon.actualBurstPoint = {
-            latitude: currentData.latitude,
-            longitude: currentData.longitude,
-            altitude: currentData.altitude,
-            timestamp: currentData.timestamp
-          };
+        if (previousData.altitude && currentAltitude < previousData.altitude) {
+          // Balloon is descending
+          state.consecutiveDescentPoints++;
+          console.log(`Descent detected: ${currentAltitude}m (drop: ${altitudeDrop}m, consecutive: ${state.consecutiveDescentPoints})`);
           
-          console.log('BURST DETECTED!', this.trackingData.balloon.actualBurstPoint);
+          // Confirm burst after required consecutive descent points
+          if (state.consecutiveDescentPoints >= state.requiredDescentPoints) {
+            this.trackingData.balloon.burstDetected = true;
+            this.trackingData.balloon.actualBurstPoint = {
+              latitude: currentData.latitude,
+              longitude: currentData.longitude,
+              altitude: currentAltitude,
+              timestamp: currentData.timestamp,
+              peakAltitude: state.highestAltitudeReached,
+              altitudeDrop: altitudeDrop
+            };
+            
+            console.log('BURST DETECTED!', {
+              burstAltitude: currentAltitude,
+              peakAltitude: state.highestAltitudeReached,
+              altitudeDrop: altitudeDrop,
+              location: `${currentData.latitude}, ${currentData.longitude}`
+            });
+          }
+        } else {
+          // Reset descent counter if altitude increased
+          state.consecutiveDescentPoints = 0;
         }
       }
+    } else {
+      // Reset descent counter if drop is not significant
+      state.consecutiveDescentPoints = 0;
     }
   }
 
@@ -182,6 +239,16 @@ class TrackingService {
       chasers: [],
       prediction: null,
       lastUpdate: null
+    };
+    
+    // Reset burst detection state
+    this.burstDetectionState = {
+      isMonitoring: false,
+      minimumAltitudeToStart: 3000,
+      highestAltitudeReached: 0,
+      significantDropThreshold: 1000,
+      consecutiveDescentPoints: 0,
+      requiredDescentPoints: 3
     };
   }
 
