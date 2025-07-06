@@ -58,6 +58,9 @@ class ConfigService {
   }
 
   async addChaserCallsign(callsign) {
+    if (!this.config) {
+      await this.loadConfig();
+    }
     const upperCallsign = callsign.toUpperCase();
     if (!this.config.chaserCallsigns.includes(upperCallsign)) {
       this.config.chaserCallsigns.push(upperCallsign);
@@ -67,6 +70,9 @@ class ConfigService {
   }
 
   async removeChaserCallsign(callsign) {
+    if (!this.config) {
+      await this.loadConfig();
+    }
     const upperCallsign = callsign.toUpperCase();
     this.config.chaserCallsigns = this.config.chaserCallsigns.filter(
       c => c !== upperCallsign
