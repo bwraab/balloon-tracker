@@ -39,16 +39,24 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'client/build')));
 
 // API Routes
 app.use('/api/config', require('./routes/config'));
 app.use('/api/tracking', require('./routes/tracking'));
 app.use('/api/kml', require('./routes/kml'));
 
-// Serve React app for all other routes
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
+// API-only server - no frontend serving
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+  res.status(404).json({ error: 'API endpoint not found' });
 });
 
 // Socket.IO connection handling
