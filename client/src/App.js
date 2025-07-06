@@ -68,6 +68,7 @@ function App() {
   });
   
   const [showControlPanel, setShowControlPanel] = useState(true);
+  const [isSatelliteView, setIsSatelliteView] = useState(false);
 
   useEffect(() => {
     // Load initial configuration and tracking data
@@ -197,7 +198,8 @@ function App() {
 
   const formatDistance = (distance) => {
     if (!distance) return 'Unknown';
-    return `${distance.toFixed(1)}km`;
+    const miles = distance * 0.621371; // Convert km to miles
+    return `${miles.toFixed(1)}mi`;
   };
 
   const formatBearing = (bearing) => {
@@ -217,6 +219,27 @@ function App() {
         {showControlPanel ? <Settings size={20} /> : <Settings size={20} />}
       </button>
 
+      {/* Satellite View Toggle */}
+      <button 
+        className="satellite-toggle"
+        style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          zIndex: 1000,
+          padding: '8px 12px',
+          backgroundColor: isSatelliteView ? '#28a745' : '#6c757d',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '12px'
+        }}
+        onClick={() => setIsSatelliteView(!isSatelliteView)}
+      >
+        {isSatelliteView ? 'Map View' : 'Satellite View'}
+      </button>
+
       {/* Control Panel */}
       {showControlPanel && (
         <ControlPanel 
@@ -234,8 +257,14 @@ function App() {
         style={{ height: '100vh', width: '100%' }}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url={isSatelliteView 
+            ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+            : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          }
+          attribution={isSatelliteView 
+            ? '&copy; <a href="https://www.esri.com/">Esri</a>'
+            : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          }
         />
 
         {/* Balloon current position */}
@@ -248,7 +277,7 @@ function App() {
               <div>
                 <h3>Balloon: {trackingData.balloon.current.callsign}</h3>
                 <p><strong>Altitude:</strong> {formatAltitude(trackingData.balloon.current.altitude)}</p>
-                <p><strong>Speed:</strong> {trackingData.balloon.current.speed ? `${trackingData.balloon.current.speed} km/h` : 'Unknown'}</p>
+                <p><strong>Speed:</strong> {trackingData.balloon.current.speed ? `${Math.round(trackingData.balloon.current.speed * 0.621371)} mph` : 'Unknown'}</p>
                 <p><strong>Course:</strong> {trackingData.balloon.current.course ? `${trackingData.balloon.current.course}°` : 'Unknown'}</p>
                 <p><strong>Time:</strong> {formatTime(trackingData.balloon.current.timestamp)}</p>
                 {trackingData.balloon.current.comment && (
@@ -294,6 +323,7 @@ function App() {
             <Popup>
               <div>
                 <h3>Calculated Landing Point</h3>
+                <p><strong>Coordinates:</strong> {trackingData.balloon.calculatedLanding.latitude.toFixed(7)} {trackingData.balloon.calculatedLanding.longitude.toFixed(7)}</p>
                 <p><strong>Distance from burst:</strong> {formatDistance(trackingData.balloon.calculatedLanding.predictionMetrics.distance)}</p>
                 <p><strong>Bearing from burst:</strong> {formatBearing(trackingData.balloon.calculatedLanding.predictionMetrics.bearing)}</p>
                 <p><strong>Calculated at:</strong> {formatTime(trackingData.balloon.calculatedLanding.calculatedAt)}</p>
@@ -338,6 +368,7 @@ function App() {
             <Popup>
               <div>
                 <h3>Predicted Landing Point</h3>
+                <p><strong>Coordinates:</strong> {trackingData.prediction.landingPoint.latitude.toFixed(7)} {trackingData.prediction.landingPoint.longitude.toFixed(7)}</p>
                 <p><strong>Altitude:</strong> {formatAltitude(trackingData.prediction.landingPoint.altitude)}</p>
                 <p><strong>Name:</strong> {trackingData.prediction.landingPoint.name}</p>
               </div>
@@ -356,7 +387,7 @@ function App() {
               <div>
                 <h3>Chaser: {chaser.callsign}</h3>
                 <p><strong>Altitude:</strong> {formatAltitude(chaser.altitude)}</p>
-                <p><strong>Speed:</strong> {chaser.speed ? `${chaser.speed} km/h` : 'Unknown'}</p>
+                <p><strong>Speed:</strong> {chaser.speed ? `${Math.round(chaser.speed * 0.621371)} mph` : 'Unknown'}</p>
                 <p><strong>Course:</strong> {chaser.course ? `${chaser.course}°` : 'Unknown'}</p>
                 <p><strong>Time:</strong> {formatTime(chaser.timestamp)}</p>
                 {chaser.comment && (
@@ -371,7 +402,7 @@ function App() {
         {trackingData.balloon.calculatedLanding && (
           <Circle
             center={[trackingData.balloon.calculatedLanding.latitude, trackingData.balloon.calculatedLanding.longitude]}
-            radius={5000} // 5km radius
+            radius={3107} // 3.1 miles radius (converted from 5km)
             color="green"
             fillColor="green"
             fillOpacity={0.1}

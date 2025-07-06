@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -19,6 +19,31 @@ import apiConfig from '../config';
 const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking }) => {
   const [newChaserCallsign, setNewChaserCallsign] = useState('');
   const [activeTab, setActiveTab] = useState('config');
+  const [burstAltitudeInput, setBurstAltitudeInput] = useState('');
+
+  // Initialize burst altitude input only once when component mounts
+  React.useEffect(() => {
+    if (!burstAltitudeInput) {
+      setBurstAltitudeInput(Math.round(config.burstDetectionAltitude * 3.28084).toString());
+    }
+  }, []); // Empty dependency array - only run once
+
+  // Debounced update for burst altitude
+  const updateBurstAltitude = useCallback((inputValue) => {
+    const timeoutId = setTimeout(() => {
+      const feetValue = parseInt(inputValue) || 0;
+      const metersValue = Math.round(feetValue / 3.28084);
+      onUpdateConfig({ burstDetectionAltitude: metersValue });
+    }, 1000); // Wait 1 second after user stops typing
+    return () => clearTimeout(timeoutId);
+  }, [onUpdateConfig]);
+
+  // Handle burst altitude input change
+  const handleBurstAltitudeChange = (e) => {
+    const value = e.target.value;
+    setBurstAltitudeInput(value);
+    updateBurstAltitude(value);
+  };
 
   const onDrop = async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return;
@@ -96,7 +121,8 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
 
   const formatDistance = (distance) => {
     if (!distance) return 'Unknown';
-    return `${distance.toFixed(1)}km`;
+    const miles = distance * 0.621371; // Convert km to miles
+    return `${miles.toFixed(1)}mi`;
   };
 
   const formatBearing = (bearing) => {
@@ -161,8 +187,8 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
             <label>Burst Detection Altitude (ft)</label>
             <input
               type="number"
-              value={Math.round(config.burstDetectionAltitude * 3.28084)}
-              onChange={(e) => onUpdateConfig({ burstDetectionAltitude: Math.round(parseInt(e.target.value) / 3.28084) })}
+              value={burstAltitudeInput}
+              onChange={handleBurstAltitudeChange}
               placeholder="16404"
             />
           </div>
@@ -231,7 +257,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
               <div className="data-row">
                 <span className="data-label">Speed:</span>
                 <span className="data-value">
-                  {trackingData.balloon.current.speed ? `${trackingData.balloon.current.speed} km/h` : 'Unknown'}
+                  {trackingData.balloon.current.speed ? `${trackingData.balloon.current.speed} mph` : 'Unknown'}
                 </span>
               </div>
               <div className="data-row">
