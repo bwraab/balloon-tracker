@@ -37,13 +37,13 @@ class TrackingService {
   startTracking(io) {
     this.io = io;
     
-    // Update tracking data every 30 seconds
+    // Update tracking data every 2 minutes (reduced from 30 seconds to comply with APRS.fi guidelines)
     this.trackingInterval = setInterval(async () => {
       await this.updateTrackingData();
-    }, 30000);
+    }, 120000);
 
-    // Also update every 30 seconds using cron for more precise timing
-    cron.schedule('*/30 * * * * *', async () => {
+    // Also update every 2 minutes using cron for more precise timing
+    cron.schedule('0 */2 * * * *', async () => {
       await this.updateTrackingData();
     });
   }
@@ -261,10 +261,10 @@ class TrackingService {
 
   // cPanel-compatible tracking without Socket.IO
   startTrackingForCpanel() {
-    // Update tracking data every 30 seconds without Socket.IO
+    // Update tracking data every 2 minutes without Socket.IO (reduced from 30 seconds to comply with APRS.fi guidelines)
     this.trackingInterval = setInterval(async () => {
       await this.updateTrackingData();
-    }, 30000);
+    }, 120000);
     
     console.log('cPanel tracking service started');
   }

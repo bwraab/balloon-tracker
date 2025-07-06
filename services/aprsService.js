@@ -14,6 +14,9 @@ class APRSService {
           what: 'loc',
           apikey: this.apiKey,
           format: 'json'
+        },
+        headers: {
+          'User-Agent': 'balloon-tracker/1.0.0 (+https://n4bwr.com/balloon-tracker/)'
         }
       });
 
