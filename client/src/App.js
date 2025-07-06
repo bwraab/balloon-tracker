@@ -26,7 +26,7 @@ const balloonIcon = new Icon({
 });
 
 const chaserIcon = new Icon({
-  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDkuNzRMMTIgMTZMMTAuOTEgOS43NEw0IDlMMTAuOTEgOC4yNkwxMiAyWiIgZmlsbD0iIzQyYzM5NyIvPgo8L3N2Zz4=',
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSI5IiBmaWxsPSJub25lIiBzdHJva2U9IiNmZjAwMDAiIHN0cm9rZS13aWR0aD0iNCIvPgo8L3N2Zz4=',
   iconSize: [24, 24],
   iconAnchor: [12, 12],
   popupAnchor: [0, -12]
@@ -44,6 +44,13 @@ const landingIcon = new Icon({
   iconSize: [24, 24],
   iconAnchor: [12, 12],
   popupAnchor: [0, -12]
+});
+
+const pathPointIcon = new Icon({
+  iconUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIiIGhlaWdodD0iMTIiIHZpZXdCb3g9IjAgMCAxMiAxMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iNiIgY3k9IjYiIHI9IjQiIGZpbGw9IiNmZmZmZmYiIHN0cm9rZT0iI2NjMDAwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPg==',
+  iconSize: [12, 12],
+  iconAnchor: [6, 6],
+  popupAnchor: [0, -6]
 });
 
 function App() {
@@ -297,6 +304,29 @@ function App() {
             opacity={0.7}
           />
         )}
+
+        {/* Balloon path points */}
+        {trackingData.balloon.history.map((point, index) => (
+          <Marker 
+            key={`path-point-${index}`}
+            position={[point.latitude, point.longitude]}
+            icon={pathPointIcon}
+          >
+            <Popup>
+              <div>
+                <h3>Beacon #{index + 1}</h3>
+                <p><strong>Time:</strong> {formatTime(point.timestamp)}</p>
+                <p><strong>Altitude:</strong> {formatAltitude(point.altitude)}</p>
+                <p><strong>Speed:</strong> {point.speed ? `${Math.round(point.speed * 0.621371)} mph` : 'Unknown'}</p>
+                <p><strong>Course:</strong> {point.course ? `${point.course}°` : 'Unknown'}</p>
+                <p><strong>Coordinates:</strong> {point.latitude.toFixed(7)} {point.longitude.toFixed(7)}</p>
+                {point.comment && (
+                  <p><strong>Comment:</strong> {point.comment}</p>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+        ))}
 
         {/* Actual burst point */}
         {trackingData.balloon.actualBurstPoint && (

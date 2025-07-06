@@ -12,7 +12,9 @@ import {
   CheckCircle,
   Trash2,
   Plus,
-  Settings
+  Settings,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import apiConfig from '../config';
 
@@ -20,6 +22,11 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
   const [newChaserCallsign, setNewChaserCallsign] = useState('');
   const [activeTab, setActiveTab] = useState('config');
   const [burstAltitudeInput, setBurstAltitudeInput] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState('');
+  const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+
+  const ADMIN_PASSWORD = '44Kenwood!';
 
   // Initialize burst altitude input only once when component mounts
   React.useEffect(() => {
@@ -30,13 +37,14 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
 
   // Debounced update for burst altitude
   const updateBurstAltitude = useCallback((inputValue) => {
+    if (!isAuthenticated) return;
     const timeoutId = setTimeout(() => {
       const feetValue = parseInt(inputValue) || 0;
       const metersValue = Math.round(feetValue / 3.28084);
       onUpdateConfig({ burstDetectionAltitude: metersValue });
     }, 1000); // Wait 1 second after user stops typing
     return () => clearTimeout(timeoutId);
-  }, [onUpdateConfig]);
+  }, [onUpdateConfig, isAuthenticated]);
 
   // Handle burst altitude input change
   const handleBurstAltitudeChange = (e) => {
@@ -46,6 +54,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
   };
 
   const onDrop = async (acceptedFiles) => {
+    if (!requireAuth('upload KML file')) return;
     if (acceptedFiles.length === 0) return;
 
     const file = acceptedFiles[0];
@@ -77,6 +86,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
   });
 
   const handleBalloonCallsignChange = async (e) => {
+    if (!requireAuth('modify balloon callsign')) return;
     const callsign = e.target.value;
     await onUpdateConfig({ balloonCallsign: callsign });
   };
@@ -97,6 +107,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
   };
 
   const handleRemoveChaser = async (callsign) => {
+    if (!requireAuth('remove chaser')) return;
     try {
       await axios.delete(`${apiConfig.API_BASE_URL}/api/config/chaser-callsigns/${callsign}`);
       toast.success('Chaser removed');
@@ -139,9 +150,118 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
     return 'status-offline';
   };
 
+  const handlePasswordSubmit = () => {
+    if (password === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      setShowPasswordPrompt(false);
+      setPassword('');
+      toast.success('Admin access granted');
+    } else {
+      toast.error('Incorrect password');
+      setPassword('');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    toast.success('Logged out');
+  };
+
+  const requireAuth = (action) => {
+    if (!isAuthenticated) {
+      setShowPasswordPrompt(true);
+      return false;
+    }
+    return true;
+  };
+
   return (
     <div className="control-panel">
-      <h2>Balloon Tracker</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+        <h2>Balloon Tracker</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {isAuthenticated ? (
+            <>
+              <span style={{ fontSize: '12px', color: '#28a745' }}>Admin Access</span>
+              <button 
+                className="btn btn-secondary" 
+                style={{ padding: '4px 8px', fontSize: '10px' }}
+                onClick={handleLogout}
+              >
+                <Unlock size={12} />
+              </button>
+            </>
+          ) : (
+            <button 
+              className="btn btn-secondary" 
+              style={{ padding: '4px 8px', fontSize: '10px' }}
+              onClick={() => setShowPasswordPrompt(true)}
+            >
+              <Lock size={12} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Password Prompt Modal */}
+      {showPasswordPrompt && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '20px',
+            borderRadius: '8px',
+            minWidth: '300px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: '15px' }}>Admin Access Required</h3>
+            <p style={{ marginBottom: '15px', fontSize: '14px', color: '#666' }}>
+              Enter password to modify settings or reset tracking data.
+            </p>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter password"
+              style={{
+                width: '100%',
+                padding: '8px',
+                marginBottom: '15px',
+                border: '1px solid #ddd',
+                borderRadius: '4px'
+              }}
+              onKeyPress={(e) => e.key === 'Enter' && handlePasswordSubmit()}
+            />
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowPasswordPrompt(false);
+                  setPassword('');
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-success"
+                onClick={handlePasswordSubmit}
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Tab Navigation */}
       <div style={{ display: 'flex', marginBottom: '15px', borderBottom: '1px solid #eee' }}>
@@ -180,6 +300,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
               value={config.balloonCallsign}
               onChange={handleBalloonCallsignChange}
               placeholder="Enter balloon callsign"
+              disabled={!isAuthenticated}
             />
           </div>
 
@@ -190,6 +311,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
               value={burstAltitudeInput}
               onChange={handleBurstAltitudeChange}
               placeholder="16404"
+              disabled={!isAuthenticated}
             />
           </div>
 
@@ -198,19 +320,30 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
             <input
               type="number"
               value={config.updateInterval}
-              onChange={(e) => onUpdateConfig({ updateInterval: parseInt(e.target.value) })}
+              onChange={(e) => {
+                if (!requireAuth('modify update interval')) return;
+                onUpdateConfig({ updateInterval: parseInt(e.target.value) });
+              }}
               placeholder="30000"
+              disabled={!isAuthenticated}
             />
           </div>
 
           <h3>KML Prediction Upload</h3>
-          <div {...getRootProps()} className={`file-upload ${isDragActive ? 'dragover' : ''}`}>
+          <div 
+            {...getRootProps()} 
+            className={`file-upload ${isDragActive ? 'dragover' : ''} ${!isAuthenticated ? 'disabled' : ''}`}
+            style={{ opacity: isAuthenticated ? 1 : 0.5, pointerEvents: isAuthenticated ? 'auto' : 'none' }}
+          >
             <input {...getInputProps()} />
             <Upload size={24} style={{ marginBottom: '10px', color: '#6c757d' }} />
             <div className="file-upload-text">
-              {isDragActive
-                ? 'Drop the KML file here...'
-                : 'Drag & drop a KML file, or click to select'}
+              {!isAuthenticated 
+                ? 'Admin access required for KML upload'
+                : isDragActive
+                  ? 'Drop the KML file here...'
+                  : 'Drag & drop a KML file, or click to select'
+              }
             </div>
           </div>
 
@@ -232,7 +365,14 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
             </div>
           )}
 
-          <button className="btn btn-danger" onClick={onResetTracking}>
+          <button 
+            className="btn btn-danger" 
+            onClick={() => {
+              if (!requireAuth('reset tracking data')) return;
+              onResetTracking();
+            }}
+            disabled={!isAuthenticated}
+          >
             Reset Tracking Data
           </button>
         </div>
@@ -323,7 +463,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
 
       {/* Chasers Tab */}
       {activeTab === 'chasers' && (
-        <div className="scrollable-content">
+        <div className="scrollable-content" style={{ maxHeight: '400px', overflowY: 'auto', padding: '10px' }}>
           <h3>Chaser Management</h3>
           
           <div className="form-group">
@@ -344,7 +484,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
 
           <h3>Current Chasers</h3>
           <div className="chaser-list">
-            {config.chaserCallsigns.length > 0 ? (
+            {config.chaserCallsigns && config.chaserCallsigns.length > 0 ? (
               config.chaserCallsigns.map((callsign) => {
                 const chaserData = trackingData.chasers.find(c => c.callsign === callsign);
                 return (
@@ -372,7 +512,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
             )}
           </div>
 
-          {trackingData.chasers.length > 0 && (
+          {trackingData.chasers && trackingData.chasers.length > 0 && (
             <div className="data-display">
               <h4>Active Chasers</h4>
               {trackingData.chasers.map((chaser, index) => (
