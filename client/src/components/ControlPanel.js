@@ -90,7 +90,8 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
 
   const formatAltitude = (altitude) => {
     if (!altitude) return 'Unknown';
-    return `${Math.round(altitude)}m`;
+    const feet = Math.round(altitude * 3.28084); // Convert meters to feet
+    return `${feet}ft`;
   };
 
   const formatDistance = (distance) => {
@@ -157,12 +158,12 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
           </div>
 
           <div className="form-group">
-            <label>Burst Detection Altitude (m)</label>
+            <label>Burst Detection Altitude (ft)</label>
             <input
               type="number"
-              value={config.burstDetectionAltitude}
-              onChange={(e) => onUpdateConfig({ burstDetectionAltitude: parseInt(e.target.value) })}
-              placeholder="5000"
+              value={Math.round(config.burstDetectionAltitude * 3.28084)}
+              onChange={(e) => onUpdateConfig({ burstDetectionAltitude: Math.round(parseInt(e.target.value) / 3.28084) })}
+              placeholder="16404"
             />
           </div>
 

@@ -144,7 +144,8 @@ function App() {
 
   const formatAltitude = (altitude) => {
     if (!altitude) return 'Unknown';
-    return `${Math.round(altitude)}m`;
+    const feet = Math.round(altitude * 3.28084); // Convert meters to feet
+    return `${feet}ft`;
   };
 
   const formatDistance = (distance) => {
