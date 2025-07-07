@@ -114,8 +114,8 @@ class TrackingService {
 
   // Helper to parse burst comment
   parseBurstComment(comment) {
-    // Match: altitude latitude longitude (all numbers, separated by spaces)
-    const match = comment && comment.match(/^([\d.]+)\s+([\d.\-]+)\s+([\d.\-]+)$/);
+    // Look for Burst:alt,lat,lon (e.g., Burst:105591.3,33.613055605,-85.228266343)
+    const match = comment && comment.match(/Burst:([\d.]+),([\d.\-]+),([\d.\-]+)/);
     if (!match) return null;
     return {
       burstAltitudeFeet: parseFloat(match[1]),
