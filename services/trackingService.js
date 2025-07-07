@@ -112,12 +112,48 @@ class TrackingService {
     }
   }
 
+  // Helper to parse burst comment
+  parseBurstComment(comment) {
+    // Match: altitude latitude longitude (all numbers, separated by spaces)
+    const match = comment && comment.match(/^([\d.]+)\s+([\d.\-]+)\s+([\d.\-]+)$/);
+    if (!match) return null;
+    return {
+      burstAltitudeFeet: parseFloat(match[1]),
+      latitude: parseFloat(match[2]),
+      longitude: parseFloat(match[3])
+    };
+  }
+
   updateBalloonData(newData) {
     // Add to history
     this.trackingData.balloon.history.push({
       ...newData,
       timestamp: new Date()
     });
+
+    // Check for burst comment in APRS packet
+    const burstData = this.parseBurstComment(newData.comment);
+    if (burstData) {
+      // Convert altitude to meters
+      const burstAltitudeMeters = burstData.burstAltitudeFeet * 0.3048;
+      this.trackingData.balloon.burstDetected = true;
+      this.trackingData.balloon.actualBurstPoint = {
+        latitude: burstData.latitude,
+        longitude: burstData.longitude,
+        altitude: burstAltitudeMeters,
+        timestamp: newData.timestamp,
+        peakAltitude: burstAltitudeMeters,
+        altitudeDrop: null // Not available from comment
+      };
+      console.log('BURST DETECTED from APRS comment!', this.trackingData.balloon.actualBurstPoint);
+      // Trigger landing prediction if available
+      if (this.trackingData.prediction) {
+        this.calculateNewLandingPoint();
+      }
+      // Save tracking data to file
+      this.saveTrackingDataToFile();
+      return; // Skip normal burst detection logic
+    }
 
     // Limit history length
     if (this.trackingData.balloon.history.length > this.maxHistoryLength) {
