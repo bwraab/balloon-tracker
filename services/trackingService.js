@@ -2,9 +2,12 @@ const aprsService = require('./aprsService');
 const kmlService = require('./kmlService');
 const configService = require('./configService');
 const cron = require('node-cron');
+const fs = require('fs').promises;
+const path = require('path');
 
 class TrackingService {
   constructor() {
+    this.trackingPath = path.join(__dirname, '../data/tracking.json');
     this.trackingData = {
       balloon: {
         current: null,
@@ -32,6 +35,29 @@ class TrackingService {
       consecutiveDescentPoints: 0,   // Count consecutive descending points
       requiredDescentPoints: 3       // Need 3 consecutive descending points to confirm burst
     };
+
+    // Load tracking data from file if exists
+    this.loadTrackingDataFromFile();
+  }
+
+  async loadTrackingDataFromFile() {
+    try {
+      const data = await fs.readFile(this.trackingPath, 'utf8');
+      this.trackingData = JSON.parse(data);
+      console.log('Loaded tracking data from file.');
+    } catch (error) {
+      console.log('No tracking data file found, starting fresh.');
+    }
+  }
+
+  async saveTrackingDataToFile() {
+    try {
+      const dataDir = path.dirname(this.trackingPath);
+      await fs.mkdir(dataDir, { recursive: true });
+      await fs.writeFile(this.trackingPath, JSON.stringify(this.trackingData, null, 2));
+    } catch (error) {
+      console.error('Error saving tracking data:', error);
+    }
   }
 
   startTracking(io) {
@@ -78,6 +104,9 @@ class TrackingService {
       // For cPanel, we don't emit Socket.IO events
       // Data will be fetched via API polling instead
 
+      // Save tracking data to file
+      await this.saveTrackingDataToFile();
+
     } catch (error) {
       console.error('Error updating tracking data:', error);
     }
@@ -105,6 +134,9 @@ class TrackingService {
     if (this.trackingData.balloon.burstDetected && this.trackingData.prediction) {
       this.calculateNewLandingPoint();
     }
+
+    // Save tracking data to file
+    this.saveTrackingDataToFile();
   }
 
   checkForBurst(currentData) {

@@ -87,8 +87,15 @@ function App() {
       loadTrackingData();
     }, 30000);
 
+    // --- KEEP-ALIVE TIMER ---
+    // Ping the backend every 10 minutes to keep Render awake
+    const keepAlive = setInterval(() => {
+      fetch(`${apiConfig.API_BASE_URL}/api/tracking`);
+    }, 10 * 60 * 1000); // 10 minutes
+
     return () => {
       clearInterval(interval);
+      clearInterval(keepAlive);
     };
   }, []);
 
