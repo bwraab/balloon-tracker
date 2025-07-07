@@ -42,6 +42,12 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Enable CORS for frontend domain
+app.use(cors({
+  origin: 'https://n4bwr.com',
+  credentials: true
+}));
+
 // API Routes
 app.use('/api/config', require('./routes/config'));
 app.use('/api/tracking', require('./routes/tracking'));
