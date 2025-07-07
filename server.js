@@ -47,7 +47,7 @@ app.use('/api/config', require('./routes/config'));
 app.use('/api/tracking', require('./routes/tracking'));
 app.use('/api/kml', require('./routes/kml'));
 
-// Debug endpoint to view config and tracking files
+// Place the debug endpoint here, before any catch-all routes
 app.get('/api/debug/files', async (req, res) => {
   try {
     const configPath = path.join(__dirname, 'data/config.json');
@@ -71,6 +71,7 @@ app.get('/api/debug/files', async (req, res) => {
     res.status(500).json({ error: 'Failed to read debug files', details: err.message });
   }
 });
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
