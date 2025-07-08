@@ -99,6 +99,10 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    document.title = 'Balloon Tracker by N4BWR';
+  }, []);
+
   const loadConfig = async () => {
     try {
       const response = await axios.get(`${apiConfig.API_BASE_URL}/api/config`);
@@ -229,6 +233,7 @@ function App() {
       <button 
         className="control-toggle"
         onClick={() => setShowControlPanel(!showControlPanel)}
+        style={{ zIndex: 1100 }} // ensure above map controls
       >
         {showControlPanel ? <Settings size={20} /> : <Settings size={20} />}
       </button>
@@ -240,7 +245,7 @@ function App() {
           position: 'absolute',
           top: '10px',
           right: '10px',
-          zIndex: 1000,
+          zIndex: 1100, // ensure above map controls
           padding: '8px 12px',
           backgroundColor: isSatelliteView ? '#28a745' : '#6c757d',
           color: 'white',
@@ -261,6 +266,7 @@ function App() {
           trackingData={trackingData}
           onUpdateConfig={updateConfig}
           onResetTracking={resetTracking}
+          headingText="Balloon Tracker by N4BWR"
         />
       )}
 
@@ -269,6 +275,7 @@ function App() {
         center={getMapCenter()} 
         zoom={getMapZoom()} 
         style={{ height: '100vh', width: '100%' }}
+        className="main-map-container"
       >
         <TileLayer
           url={isSatelliteView 

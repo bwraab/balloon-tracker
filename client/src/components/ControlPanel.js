@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import apiConfig from '../config';
 
-const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking }) => {
+const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking, headingText }) => {
   const [newChaserCallsign, setNewChaserCallsign] = useState('');
   const [activeTab, setActiveTab] = useState('config');
   const [burstAltitudeInput, setBurstAltitudeInput] = useState('');
@@ -178,7 +178,9 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
   return (
     <div className="control-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h2>Balloon Tracker</h2>
+        <h2 style={{ margin: 0, zIndex: 1200, background: 'white', padding: '4px 12px', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+          {headingText || 'Balloon Tracker by N4BWR'}
+        </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isAuthenticated ? (
             <>
