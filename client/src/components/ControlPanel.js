@@ -26,7 +26,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking })
   const [password, setPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
 
-  const ADMIN_PASSWORD = '44Kenwood!';
+  const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD || '';
 
   // Initialize burst altitude input only once when component mounts
   React.useEffect(() => {
