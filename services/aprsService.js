@@ -55,6 +55,41 @@ class APRSService {
       .filter(station => station !== null);
   }
 
+  async getTrackData(callsign, start, end) {
+    try {
+      const response = await axios.get(this.baseUrl, {
+        params: {
+          name: callsign,
+          what: 'track',
+          apikey: this.apiKey,
+          format: 'json',
+          start,
+          end
+        },
+        headers: {
+          'User-Agent': 'balloon-tracker/1.0.0 (+https://n4bwr.com/balloon-tracker/)'
+        }
+      });
+      if (response.data && response.data.entries && response.data.entries.length > 0) {
+        return response.data.entries.map(entry => ({
+          callsign: entry.name,
+          latitude: parseFloat(entry.lat),
+          longitude: parseFloat(entry.lng),
+          altitude: entry.altitude ? parseFloat(entry.altitude) : null,
+          timestamp: new Date(entry.time * 1000),
+          comment: entry.comment || '',
+          symbol: entry.symbol || '',
+          course: entry.course ? parseFloat(entry.course) : null,
+          speed: entry.speed ? parseFloat(entry.speed) : null
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error(`Error fetching APRS track data for ${callsign}:`, error.message);
+      return [];
+    }
+  }
+
   // Calculate distance between two points in kilometers
   calculateDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // Earth's radius in kilometers
