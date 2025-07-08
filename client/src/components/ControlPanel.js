@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
@@ -25,6 +25,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking, h
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [showPasswordPrompt, setShowPasswordPrompt] = useState(false);
+  const [error, setError] = useState('');
 
   const ADMIN_PASSWORD = process.env.REACT_APP_ADMIN_PASSWORD || '';
 
@@ -155,12 +156,18 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking, h
       setIsAuthenticated(true);
       setShowPasswordPrompt(false);
       setPassword('');
+      setError('');
       toast.success('Admin access granted');
     } else {
-      toast.error('Incorrect password');
+      setError('Incorrect password');
       setPassword('');
     }
   };
+
+  // Clear error when modal closes
+  useEffect(() => {
+    if (!showPasswordPrompt) setError('');
+  }, [showPasswordPrompt]);
 
   const handleLogout = () => {
     setIsAuthenticated(false);
@@ -246,6 +253,7 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking, h
             <p style={{ marginBottom: '15px', fontSize: '14px', color: '#666' }}>
               Enter password to modify settings or reset tracking data.
             </p>
+            {error && <div style={{ color: 'red', marginBottom: 8 }}>{error}</div>}
             <input
               type="password"
               value={password}
