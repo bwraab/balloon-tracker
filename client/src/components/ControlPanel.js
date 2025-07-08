@@ -178,8 +178,24 @@ const ControlPanel = ({ config, trackingData, onUpdateConfig, onResetTracking, h
   return (
     <div className="control-panel">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-        <h2 style={{ margin: 0, zIndex: 1200, background: 'white', padding: '4px 12px', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+        <h2 style={{ margin: 0, zIndex: 1200, background: 'white', padding: '4px 12px', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)', display: 'flex', alignItems: 'center' }}>
           {headingText || 'Balloon Tracker by N4BWR'}
+          {trackingData.balloon.burstDetected && (
+            <span style={{
+              marginLeft: 12,
+              color: '#fff',
+              background: '#d9534f',
+              borderRadius: 4,
+              padding: '2px 8px',
+              fontWeight: 'bold',
+              fontSize: '0.9em',
+              verticalAlign: 'middle',
+              letterSpacing: '1px',
+              boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+            }}>
+              BURST DETECTED
+            </span>
+          )}
         </h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isAuthenticated ? (
