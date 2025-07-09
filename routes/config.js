@@ -33,6 +33,9 @@ router.put('/balloon-callsign', async (req, res) => {
     }
     
     const config = await configService.setBalloonCallsign(callsign);
+    // Restore last 6 hours of history from aprs.fi
+    const trackingService = require('../services/trackingService');
+    await trackingService.restoreBalloonHistoryFromAprs();
     res.json(config);
   } catch (error) {
     console.error('Error setting balloon callsign:', error);

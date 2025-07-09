@@ -336,6 +336,20 @@ class TrackingService {
     
     console.log('cPanel tracking service started');
   }
+
+  async restoreBalloonHistoryFromAprs() {
+    const config = await configService.getConfig();
+    if (!config.balloonCallsign) return;
+    const now = Math.floor(Date.now() / 1000);
+    const sixHoursAgo = now - 6 * 60 * 60;
+    const history = await aprsService.getTrackData(config.balloonCallsign, sixHoursAgo, now);
+    if (history && history.length > 0) {
+      this.trackingData.balloon.history = history;
+      this.trackingData.balloon.current = history[history.length - 1];
+      await this.saveTrackingDataToFile();
+      console.log('Restored balloon history from aprs.fi');
+    }
+  }
 }
 
 module.exports = new TrackingService(); 
