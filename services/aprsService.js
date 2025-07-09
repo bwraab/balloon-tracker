@@ -55,6 +55,57 @@ class APRSService {
       .filter(station => station !== null);
   }
 
+  // Fallback: Fetch and parse APRS raw data from aprs.fi
+  async fetchRawTrackData(callsign, start, end) {
+    const axios = require('axios');
+    const url = `https://aprs.fi/?c=raw&call=${encodeURIComponent(callsign)}`;
+    try {
+      const res = await axios.get(url);
+      const text = res.data;
+      const lines = text.split('\n').filter(line => line && !line.startsWith('aprs.fi'));
+      const beacons = [];
+      const now = Date.now();
+      const startTime = start ? start * 1000 : now - 6 * 60 * 60 * 1000;
+      const endTime = end ? end * 1000 : now;
+      for (const line of lines) {
+        // Example: 2024-06-08 14:23:45 UTC: N4BWR-5>APRS,TCPIP*,qAC,T2USAN: !3356.78N/08513.69W>123/045/A=001234 Test comment
+        const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) UTC: ([^:]+): (.+)$/);
+        if (!match) continue;
+        const [_, dateStr, header, body] = match;
+        const timestamp = Date.parse(dateStr + ' UTC');
+        if (isNaN(timestamp) || timestamp < startTime || timestamp > endTime) continue;
+        // Parse position (APRS format)
+        const posMatch = body.match(/!([0-9]{4}\.\d{2})([NS])\/([0-9]{5}\.\d{2})([EW])[^ ]*/);
+        if (!posMatch) continue;
+        let lat = parseFloat(posMatch[1].slice(0,2)) + parseFloat(posMatch[1].slice(2)) / 60;
+        if (posMatch[2] === 'S') lat = -lat;
+        let lon = parseFloat(posMatch[3].slice(0,3)) + parseFloat(posMatch[3].slice(3)) / 60;
+        if (posMatch[4] === 'W') lon = -lon;
+        // Altitude (A=xxxxx)
+        let altitude = null;
+        const altMatch = body.match(/A=(\d{6})/);
+        if (altMatch) altitude = parseInt(altMatch[1], 10) * 0.3048; // feet to meters
+        // Comment
+        const comment = body.split('A=')[1] ? body.split('A=')[1].split(' ')[1] : '';
+        beacons.push({
+          callsign,
+          latitude: lat,
+          longitude: lon,
+          altitude,
+          timestamp: new Date(timestamp),
+          comment,
+          symbol: '',
+          course: null,
+          speed: null
+        });
+      }
+      return beacons;
+    } catch (err) {
+      console.error('Error fetching/parsing APRS raw data:', err.message);
+      return [];
+    }
+  }
+
   async getTrackData(callsign, start, end) {
     try {
       const response = await axios.get(this.baseUrl, {
@@ -86,7 +137,8 @@ class APRSService {
       return [];
     } catch (error) {
       console.error(`Error fetching APRS track data for ${callsign}:`, error.message);
-      return [];
+      // Fallback to raw scraping
+      return await this.fetchRawTrackData(callsign, start, end);
     }
   }
 
