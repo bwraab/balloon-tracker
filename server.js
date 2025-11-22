@@ -17,6 +17,12 @@ const configService = require('./services/configService');
 
 const app = express();
 const server = http.createServer(app);
+// ←←← ADD THESE 4 LINES EXACTLY HERE
+const cors = require('cors');
+app.use(cors({
+  origin: 'https://www.n4bwr.com',
+  credentials: true
+}));
 const io = socketIo(server, {
   cors: {
     origin: "*",
