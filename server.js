@@ -1,3 +1,4 @@
+console.log('=== USING FIXED API-ONLY SERVER.JS - 2025 ===');
 const fs = require('fs').promises;
 const path = require('path');
 const express = require('express');
